@@ -108,6 +108,8 @@ def pretrain(
         pretrain_dataset,
         exp_path="./ssl_runs",
         ckpt_path="./checkpoints/pt-cp-{epoch:04d}.ckpt",
+        load_path=None,
+        run_pretrain=True,
         tb_path="logs",
         hidden_dim=1024,
         output_dim=1,
@@ -116,6 +118,14 @@ def pretrain(
         learning_rate=0.001,
         steps_per_epoch=40,
 ):
+    sal_model = SALModel(model, hidden_dim, output_dim)
+    sal_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate), loss=tf.keras.losses.BinaryCrossentropy(from_logits=True), metrics=["accuracy", "loss"])
+    if load_path is not None:
+        if not load_path.endswith("ckpt"):
+            load_path = tf.train.latest_checkpoint(load_path)
+        sal_model.load_weights(load_path)
+    if not run_pretrain:
+        return sal_model.encoder
     use_augmentation = False
     dataset = (
         shuffle_pretext_task_dataset(pretrain_dataset.repeat(), use_augmentation)
@@ -123,8 +133,6 @@ def pretrain(
         .batch(batch_size)
         .prefetch(tf.data.experimental.AUTOTUNE)
     )
-    sal_model = SALModel(model, hidden_dim, output_dim)
-    sal_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate), loss=tf.keras.losses.BinaryCrossentropy(from_logits=True), metrics=["accuracy", "loss"]) #, run_eagerly=True
 
     model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=ckpt_path, save_weights_only=True, save_freq=25 * steps_per_epoch
@@ -143,3 +151,4 @@ def pretrain(
         tensorboard_callback,
     ]
     sal_model.fit(dataset, epochs=epochs, callbacks=callbacks, steps_per_epoch=steps_per_epoch)
+    return sal_model.encoder
