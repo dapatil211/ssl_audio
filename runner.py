@@ -51,7 +51,7 @@ def main():
     parser.add_argument(
         "--pretrain-method",
         default="none",
-        choices=["none", "byol", "contrastive", "cola"],
+        choices=["none", "byol", "contrastive", "cola", "sal"],
     )
     parser.add_argument("--dataset-creator", default="base")
     parser.add_argument("--experiment-dir", default="ssl_runs")
@@ -257,6 +257,22 @@ def run_pretrain(model, pretrain_dataset, pretrain_method, args):
             tb_path=args.tensorboard_dir,
             epochs=args.pt_epochs,
             noise=args.cola_noise,
+        )
+    
+    elif pretrain_method == "sal":
+        import shuffle_and_learn
+
+        return shuffle_and_learn.pretrain(
+            model,
+            pretrain_dataset,
+            exp_path=os.path.join(args.experiment_dir, "pretrain"),
+            ckpt_path=os.path.join(
+                args.experiment_dir, "pretrain", "checkpoints", r"cp-{epoch:04d}"
+            ),
+            load_path=args.load_path,
+            run_pretrain=not args.skip_pretrain,
+            tb_path=args.tensorboard_dir,
+            epochs=args.pt_epochs,
         )
 
 
