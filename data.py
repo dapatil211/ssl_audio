@@ -115,3 +115,18 @@ def create_spectogram(x, sr=None, n_frames=98, is_training=False):
     x = extract_log_mel_spectrogram(x)
     x = x[Ellipsis, tf.newaxis]
     return x
+
+def create_spectogram_with_label(x, y, sr=None, n_frames=98, is_training=False):
+    """Creates an example for supervised training."""
+    if is_training:
+        x = extract_window(x)
+        x = tf.math.l2_normalize(x, epsilon=1e-9)
+    else:
+        x = tf.signal.frame(
+            x, frame_length=n_frames * 160, frame_step=n_frames * 160, pad_end=True,
+        )
+        x = tf.math.l2_normalize(x, axis=-1, epsilon=1e-9)
+
+    x = extract_log_mel_spectrogram(x)
+    x = x[Ellipsis, tf.newaxis]
+    return x, y
